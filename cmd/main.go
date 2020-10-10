@@ -1,11 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -81,43 +76,6 @@ func getSalesPageData(page *agouti.Page) ([]string, []int) {
 	return packages, nowSales
 }
 
-func sendSlackMessage(packages []string, nowSales []int) {
-	text := buildSlackNotificationText(packages, nowSales)
-	message := u.Message{Channel: u.Config.SlackChannelName, Text: text}
-	rawSendJSON, err := json.Marshal(message)
-	if err != nil {
-		panic(err)
-	}
-	req, err := http.NewRequest("POST", u.Config.SlackURL, bytes.NewBuffer(rawSendJSON))
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", u.Config.SlackToken))
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-}
-
-func buildSlackNotificationText(packages []string, nowSales []int) string {
-	if len(packages) != len(nowSales) {
-		panic(errors.New("len(packages) != len(nowSales)"))
-	}
-	var text string
-	for _, user := range u.Config.SlackUserIDs {
-		text += fmt.Sprintf("<@%s> ", user)
-	}
-	for i := 0; i < len(packages); i++ {
-		text += "\n"
-		text += fmt.Sprintf("%sが購入されました。現在の累計販売数は%d個です。", packages[i], nowSales[i])
-	}
-
-	return text
-}
-
 func main() {
 	driver := getDriver()
 	defer driver.Stop()
@@ -129,5 +87,5 @@ func main() {
 
 	login(page)
 	packages, nowSales := getSalesPageData(page)
-	sendSlackMessage(packages, nowSales)
+	u.SendSlackMessage(packages, nowSales)
 }
