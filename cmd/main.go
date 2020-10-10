@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -61,19 +62,37 @@ func getSalesPageData(page *agouti.Page) ([]string, []int) {
 	dom.Find("table#sales>thead>tr>td").Each(func(i int, s *goquery.Selection) {
 		title = append(title, s.Text())
 	})
-	dom.Find("table#sales>tbody>tr>td").Each(func(i int, s *goquery.Selection) {
-		if title[i] == "Package" {
-			packages = append(packages, s.Text())
-		}
-		if title[i] == "Qty" {
-			atoi, err := strconv.Atoi(s.Text())
-			if err != nil {
-				panic(err)
+	dom.Find("table#sales>tbody>tr").Each(func(i int, s *goquery.Selection) {
+		s.Find("td").Each(func(j int, ss *goquery.Selection) {
+			if title[j] == "Package" {
+				packages = append(packages, ss.Text())
 			}
-			nowSales = append(nowSales, atoi)
-		}
+			if title[j] == "Qty" {
+				atoi, err := strconv.Atoi(ss.Text())
+				if err != nil {
+					panic(err)
+				}
+				nowSales = append(nowSales, atoi)
+			}
+		})
 	})
 	return packages, nowSales
+}
+
+func buildUpdatedData(packages []string, nowSales []int) map[string]int {
+	if len(packages) != len(nowSales) {
+		panic("len(packages) != len(nowSales)")
+	}
+
+	cache := u.ReadCache()
+
+	updated := make(map[string]int)
+	for i := 0; i < len(packages); i++ {
+		if nowSales[i] != cache[packages[i]] {
+			updated[packages[i]] = nowSales[i]
+		}
+	}
+	return updated
 }
 
 func main() {
@@ -87,5 +106,9 @@ func main() {
 
 	login(page)
 	packages, nowSales := getSalesPageData(page)
-	u.SendSlackMessage(packages, nowSales)
+	updated := buildUpdatedData(packages, nowSales)
+	fmt.Println(updated)
+	u.SendSlackMessage(updated)
+
+	u.WriteCache(packages, nowSales)
 }

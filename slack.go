@@ -3,7 +3,6 @@ package unity_admin_observer
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 )
@@ -13,8 +12,12 @@ type Message struct {
 	Text    string `json:"text"`
 }
 
-func SendSlackMessage(packages []string, nowSales []int) {
-	text := buildSlackNotificationText(packages, nowSales)
+func SendSlackMessage(updated map[string]int) {
+	text := buildSlackNotificationText(updated)
+	if text == "" {
+		return
+	}
+
 	message := Message{Channel: Config.SlackChannelName, Text: text}
 	rawSendJSON, err := json.Marshal(message)
 	if err != nil {
@@ -34,17 +37,18 @@ func SendSlackMessage(packages []string, nowSales []int) {
 	defer resp.Body.Close()
 }
 
-func buildSlackNotificationText(packages []string, nowSales []int) string {
-	if len(packages) != len(nowSales) {
-		panic(errors.New("len(packages) != len(nowSales)"))
+func buildSlackNotificationText(updated map[string]int) string {
+	if len(updated) == 0 {
+		return ""
 	}
+
 	var text string
 	for _, user := range Config.SlackUserIDs {
 		text += fmt.Sprintf("<@%s> ", user)
 	}
-	for i := 0; i < len(packages); i++ {
+	for packages, nowSales := range updated {
 		text += "\n"
-		text += fmt.Sprintf("%sが購入されました。現在の累計販売数は%d個です。", packages[i], nowSales[i])
+		text += fmt.Sprintf("%sが購入されました。現在の累計販売数は%d個です。", packages, nowSales)
 	}
 
 	return text
