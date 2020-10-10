@@ -1,7 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -62,6 +67,35 @@ func getSalesPageData(page *agouti.Page) {
 	})
 }
 
+func sendSlackMessage(packages []string, nowSales []int) {
+	if len(packages) != len(nowSales) {
+		panic(errors.New("len(packages) != len(nowSales)"))
+	}
+
+	message := u.Message{Channel: u.Config.SlackChannelName, Text: "sample"}
+	rawSendJSON, err := json.Marshal(message)
+	if err != nil {
+		panic(err)
+	}
+	req, err := http.NewRequest("POST", u.Config.SlackURL, bytes.NewBuffer(rawSendJSON))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", u.Config.SlackToken))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(body))
+}
+
 func main() {
 	driver := getDriver()
 	defer driver.Stop()
@@ -73,4 +107,5 @@ func main() {
 
 	login(page)
 	getSalesPageData(page)
+	sendSlackMessage([]string{}, []int{})
 }

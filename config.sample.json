@@ -2,5 +2,9 @@
     "mail": "MAIL",
     "password": "PASSWORD",
     "login_url": "https://publisher.assetstore.unity3d.com/",
-    "sales_url": "https://publisher.assetstore.unity3d.com/sales.html"
+    "sales_url": "https://publisher.assetstore.unity3d.com/sales.html",
+    "slack_url": "https://slack.com/api/chat.postMessage",
+    "slack_token": "TOKEN",
+    "slack_channel_name": "CHANNEL NAME",
+    "slack_user_ids": []
 }
