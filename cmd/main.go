@@ -88,7 +88,11 @@ func buildUpdatedData(packages []string, nowSales []int) map[string]int {
 
 	updated := make(map[string]int)
 	for i := 0; i < len(packages); i++ {
-		if nowSales[i] != cache[packages[i]] {
+		c, ok := cache[packages[i]]
+		if !ok {
+			continue
+		}
+		if nowSales[i] != c {
 			updated[packages[i]] = nowSales[i]
 		}
 	}
