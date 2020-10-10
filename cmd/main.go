@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,7 +43,11 @@ func login(page *agouti.Page) {
 	time.Sleep(5000 * time.Millisecond)
 }
 
-func getSalesPageData(page *agouti.Page) {
+func getSalesPageData(page *agouti.Page) ([]string, []int) {
+	var packages []string
+	var title []string
+	var nowSales []int
+
 	err := page.Navigate(u.Config.SalesURL)
 	if err != nil {
 		panic(err)
@@ -60,19 +64,26 @@ func getSalesPageData(page *agouti.Page) {
 		panic(err)
 	}
 	dom.Find("table#sales>thead>tr>td").Each(func(i int, s *goquery.Selection) {
-		fmt.Println(s.Text())
+		title = append(title, s.Text())
 	})
 	dom.Find("table#sales>tbody>tr>td").Each(func(i int, s *goquery.Selection) {
-		fmt.Println(s.Text())
+		if title[i] == "Package" {
+			packages = append(packages, s.Text())
+		}
+		if title[i] == "Qty" {
+			atoi, err := strconv.Atoi(s.Text())
+			if err != nil {
+				panic(err)
+			}
+			nowSales = append(nowSales, atoi)
+		}
 	})
+	return packages, nowSales
 }
 
 func sendSlackMessage(packages []string, nowSales []int) {
-	if len(packages) != len(nowSales) {
-		panic(errors.New("len(packages) != len(nowSales)"))
-	}
-
-	message := u.Message{Channel: u.Config.SlackChannelName, Text: "sample"}
+	text := buildSlackNotificationText(packages, nowSales)
+	message := u.Message{Channel: u.Config.SlackChannelName, Text: text}
 	rawSendJSON, err := json.Marshal(message)
 	if err != nil {
 		panic(err)
@@ -89,11 +100,22 @@ func sendSlackMessage(packages []string, nowSales []int) {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
+}
+
+func buildSlackNotificationText(packages []string, nowSales []int) string {
+	if len(packages) != len(nowSales) {
+		panic(errors.New("len(packages) != len(nowSales)"))
 	}
-	fmt.Println(string(body))
+	var text string
+	for _, user := range u.Config.SlackUserIDs {
+		text += fmt.Sprintf("<@%s> ", user)
+	}
+	for i := 0; i < len(packages); i++ {
+		text += "\n"
+		text += fmt.Sprintf("%sが購入されました。現在の累計販売数は%d個です。", packages[i], nowSales[i])
+	}
+
+	return text
 }
 
 func main() {
@@ -106,6 +128,6 @@ func main() {
 	}
 
 	login(page)
-	getSalesPageData(page)
-	sendSlackMessage([]string{}, []int{})
+	packages, nowSales := getSalesPageData(page)
+	sendSlackMessage(packages, nowSales)
 }
