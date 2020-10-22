@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"os"
+	"bufio"
 	"strconv"
 	"strings"
 	"time"
@@ -35,8 +36,35 @@ func login(page *agouti.Page) {
 	time.Sleep(2000 * time.Millisecond)
 	page.FindByID("conversations_create_session_form_email").Fill(u.Config.Mail)
 	page.FindByID("conversations_create_session_form_password").Fill(u.Config.Password)
-	page.FindByName("commit").Click()
-	time.Sleep(5000 * time.Millisecond)
+	err = page.FindByName("commit").Click()
+	if err != nil{
+		panic(err)
+	}
+	time.Sleep(1000 * time.Millisecond)
+
+	fp, err := os.OpenFile("/home/siruba_2050/unity_admin_observer/log.txt", os.O_WRONLY | os.O_APPEND, 0644)
+        if err != nil {
+	    panic(err)
+        }
+	defer fp.Close()
+	url, err := page.URL()
+        if err != nil {
+	    panic(err)
+        }
+	writer := bufio.NewWriter(fp)
+	_, err = writer.WriteString(url+"¥n")
+        if err != nil {
+	    panic(err)
+        }
+	writer.Flush()
+	// scanner := bufio.NewScanner(os.Stdin)
+	// scanner.Scan()
+	// page.FindByID("conversations_email_tfa_required_form_code").Fill(scanner.Text())
+	// err = page.FindByName("commit").Click()
+	// if err != nil{
+	//	panic(err)
+	// }
+	time.Sleep(3000 * time.Millisecond)
 }
 
 func getSalesPageData(page *agouti.Page) ([]string, []int) {
@@ -111,7 +139,6 @@ func main() {
 	login(page)
 	packages, nowSales := getSalesPageData(page)
 	updated := buildUpdatedData(packages, nowSales)
-	fmt.Println(updated)
 	u.SendSlackMessage(updated)
 
 	u.WriteCache(packages, nowSales)

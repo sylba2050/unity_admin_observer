@@ -19,7 +19,7 @@ type Conf struct {
 }
 
 func init() {
-	bytes, err := ioutil.ReadFile("config.json")
+	bytes, err := ioutil.ReadFile("/home/siruba_2050/unity_admin_observer/config.json")
 	if err != nil {
 		panic(err)
 	}

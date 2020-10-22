@@ -11,7 +11,7 @@ import (
 var Cache map[string]int
 
 func ReadCache() map[string]int {
-	bytes, err := ioutil.ReadFile("cache/cache.txt")
+	bytes, err := ioutil.ReadFile("/home/siruba_2050/unity_admin_observer/cache/cache.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +39,7 @@ func WriteCache(packages []string, nowSales []int) {
 		panic("len(packages) != len(nowSales)")
 	}
 
-	file, err := os.OpenFile("cache/cache.txt", os.O_RDWR, os.ModePerm)
+	file, err := os.OpenFile("/home/siruba_2050/unity_admin_observer/cache/cache.txt", os.O_RDWR, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
